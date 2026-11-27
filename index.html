@@ -21,17 +21,49 @@
   #ld{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
     background:#5b3f8c;color:#fff;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;transition:opacity .3s}
   #ld a{color:#fff;font-size:14px;display:none}
+
+  /* 安裝提示：浮在畫面最下方 */
+  #ib{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;display:none;
+    background:#fff;color:#27223a;border-radius:16px;box-shadow:0 8px 30px rgba(30,15,60,.35);padding:14px 14px 14px 12px;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;font-size:15px;line-height:1.5;
+    animation:up .35s ease-out}
+  @keyframes up{from{transform:translateY(120%)}to{transform:none}}
+  #ib .r{display:flex;gap:12px;align-items:center;padding-right:22px}
+  #ib img{width:52px;height:52px;border-radius:12px;flex:none}
+  #ib b{display:block;font-size:16px;color:#47306f}
+  #ib .s{font-size:13px;color:#6b6580}
+  #ib .go{flex:none;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,#5b3f8c,#47306f);cursor:pointer}
+  #ib .x{position:absolute;top:4px;right:6px;border:0;background:none;font-size:20px;color:#999;cursor:pointer;padding:4px 8px}
+  #ib ol{margin:10px 0 0;padding-left:22px}
+  #ib ol li{margin:4px 0}
+  #ib .ico{display:inline-block;vertical-align:-4px;width:20px;height:20px}
+  /* iPhone：箭頭指向 Safari 下方工具列 */
+  #ib .arrow{text-align:center;font-size:26px;color:#5b3f8c;margin-top:4px;animation:bob 1s ease-in-out infinite alternate}
+  @keyframes bob{from{transform:translateY(0)}to{transform:translateY(6px)}}
 </style>
 </head>
 <body>
 <iframe id="app" title="AOI 請假" allow="camera; clipboard-write"></iframe>
 <div id="ld"><img src="icon-192.png" alt="AOI" width="96" height="96" style="border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.3)"><span>載入中… Loading…</span><a id="alt" href="#">若一直沒有出現，請點這裡用瀏覽器開啟</a></div>
+<div id="ib"></div>
 <script>
   // Apps Script 網頁應用程式的網址（結尾 /exec）。重新部署成「新部署作業」換網址時要改這裡
   var APP_URL = 'https://script.google.com/macros/s/AKfycbyb3POfxbDgINd2jIQ3IHsGryf0d4qugYYpJKD6Co2LR85ZSct5IiWS1KjGtmSQBNjT/exec';
 
-  // 外殼網址後面的參數（例如 ?t=punch 直接開忘刷）原樣帶給 Apps Script
-  var url = APP_URL + location.search;
+  var ua = navigator.userAgent;
+  var qs = new URLSearchParams(location.search);
+
+  // LINE 內建瀏覽器不能安裝 APP：網址加 openExternalBrowser=1，LINE 會自動改用手機的 Chrome／Safari 開啟
+  if (/ Line\//i.test(ua) && !qs.has('openExternalBrowser')) {
+    qs.set('openExternalBrowser', '1');
+    location.replace(location.pathname + '?' + qs.toString() + location.hash);
+  }
+
+  // 外殼網址後面的參數（例如 ?t=punch 直接開忘刷）原樣帶給 Apps Script（LINE 用的參數拿掉）
+  qs.delete('openExternalBrowser');
+  var q = qs.toString();
+  var url = APP_URL + (q ? '?' + q : '');
   var f = document.getElementById('app'), ld = document.getElementById('ld'), alt = document.getElementById('alt');
   alt.href = url;
   f.addEventListener('load', function(){ ld.style.opacity = 0; setTimeout(function(){ ld.style.display = 'none'; }, 300); });
@@ -40,6 +72,90 @@
   setTimeout(function(){ alt.style.display = 'block'; }, 15000);
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+
+  /* ===== 安裝提示 ===== */
+  // 語言：跟手機語言（中、英、越、印尼）
+  var nl = (navigator.language || '').toLowerCase();
+  var L = nl.indexOf('vi') === 0 ? 2 : (nl.indexOf('id') === 0 || nl.indexOf('in') === 0) ? 3 : nl.indexOf('en') === 0 ? 1 : 0;
+  function T(zh, en, vi, id){ return [zh, en, vi, id][L]; }
+
+  var ib = document.getElementById('ib');
+  var SHARE = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+  var ADD = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#27223a" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+
+  var installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  // 其他 APP 的內建瀏覽器（Facebook、Messenger、Instagram、微信）也不能安裝
+  var inApp = /FBAN|FBAV|FB_IAB|Instagram|MicroMessenger|Messenger/i.test(ua);
+  // 非 Safari 的 iPhone 瀏覽器（Chrome、Edge、Firefox）：iOS 16.4 以後也能加入主畫面，但步驟不同，仍建議用 Safari
+  var iosOther = isIOS && /CriOS|FxiOS|EdgiOS/.test(ua);
+
+  function dismissed(){ try{ return Date.now() - Number(localStorage.getItem('ibOff') || 0) < 3 * 864e5; }catch(e){ return false; } }
+  function hide(){ ib.style.display = 'none'; try{ localStorage.setItem('ibOff', String(Date.now())); }catch(e){} }
+  function head(title, sub, btn){
+    return '<button class="x" aria-label="close">×</button><div class="r"><img src="icon-192.png" alt="">' +
+      '<div style="flex:1;min-width:0"><b>' + title + '</b><span class="s">' + sub + '</span></div>' + (btn || '') + '</div>';
+  }
+  function show(html){
+    ib.innerHTML = html;
+    ib.style.display = 'block';
+    ib.querySelector('.x').onclick = hide;
+  }
+
+  // Android Chrome／三星瀏覽器：一鍵安裝
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferred = e;
+    if (installed || dismissed()) return;
+    show(head(T('安裝 AOI 請假 APP', 'Install the AOI Leave app', 'Cài ứng dụng AOI Nghỉ phép', 'Pasang aplikasi AOI Cuti'),
+      T('之後從桌面圖示直接開啟', 'Open it from your home screen next time', 'Lần sau mở từ màn hình chính', 'Lain kali buka dari layar utama'),
+      '<button class="go">' + T('安裝', 'Install', 'Cài đặt', 'Pasang') + '</button>'));
+    ib.querySelector('.go').onclick = function(){
+      deferred.prompt();
+      deferred.userChoice.then(function(c){ if (c.outcome === 'accepted') ib.style.display = 'none'; deferred = null; });
+    };
+  });
+  window.addEventListener('appinstalled', function(){ ib.style.display = 'none'; });
+
+  function showIOS(){
+    show(head(T('加到主畫面，當 APP 用', 'Add to Home Screen', 'Thêm vào màn hình chính', 'Tambahkan ke layar utama'),
+      T('只要 2 步', 'Just 2 steps', 'Chỉ 2 bước', 'Cukup 2 langkah')) +
+      '<ol><li>' + T('點下方的分享按鈕 ', 'Tap the Share button ', 'Nhấn nút Chia sẻ ', 'Ketuk tombol Bagikan ') + SHARE +
+      T('（沒看到就先點「⋯」）', ' (or tap "⋯" first)', ' (hoặc nhấn "⋯" trước)', ' (atau ketuk "⋯" dulu)') + '</li>' +
+      '<li>' + T('選「加入主畫面」', 'Choose "Add to Home Screen"', 'Chọn "Thêm vào MH chính"', 'Pilih "Tambah ke Layar Utama"') + ' ' + ADD + '</li></ol>' +
+      '<div class="arrow">⬇</div>');
+  }
+  function showInApp(){
+    var android = isAndroid;
+    var html = head(T('請改用瀏覽器開啟', 'Please open in your browser', 'Vui lòng mở bằng trình duyệt', 'Silakan buka di browser'),
+      android ? T('用 Chrome 開啟才能安裝 APP', 'Open in Chrome to install the app', 'Mở bằng Chrome để cài ứng dụng', 'Buka di Chrome untuk memasang aplikasi')
+              : T('右上角「⋯」→「用 Safari 開啟」', 'Tap "⋯" → "Open in Safari"', 'Nhấn "⋯" → "Mở bằng Safari"', 'Ketuk "⋯" → "Buka di Safari"'),
+      android ? '<button class="go">Chrome</button>' : '');
+    show(html);
+    if (android) ib.querySelector('.go').onclick = function(){
+      // Android：直接叫出 Chrome 開這個網址
+      location.href = 'intent://' + location.host + location.pathname + location.search + '#Intent;scheme=https;package=com.android.chrome;end';
+    };
+  }
+
+  // 測試用：網址後面加 #demo-ios、#demo-android、#demo-inapp 可以預覽各種提示
+  var demo = (location.hash.match(/^#demo-(\w+)/) || [])[1];
+  if (demo === 'ios') showIOS();
+  else if (demo === 'inapp') { isAndroid = true; showInApp(); }
+  else if (demo === 'android') window.dispatchEvent(Object.assign(new Event('beforeinstallprompt'), {
+    preventDefault: function(){}, prompt: function(){ alert('（測試）這裡會跳出 Chrome 的安裝視窗'); }, userChoice: Promise.resolve({}) }));
+  else if (!installed && !dismissed()) {
+    // 等表單出現後 1.5 秒再跳，不要一打開就擋住畫面
+    setTimeout(function(){
+      if (inApp) showInApp();
+      else if (isIOS && !iosOther) showIOS();
+      else if (iosOther) show(head(T('請用 Safari 開啟', 'Please open in Safari', 'Vui lòng mở bằng Safari', 'Silakan buka di Safari'),
+        T('用 Safari 才能加到主畫面', 'Use Safari to add it to your Home Screen', 'Dùng Safari để thêm vào màn hình chính', 'Gunakan Safari untuk menambahkan ke layar utama')));
+      // Android Chrome 由 beforeinstallprompt 處理；其他情況（電腦）不提示
+    }, 1500);
+  }
 </script>
 </body>
 </html>
