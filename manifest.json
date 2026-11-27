@@ -1,0 +1,21 @@
+{
+  "name": "AOI 請假／忘刷",
+  "short_name": "AOI 請假",
+  "description": "請假、忘刷申請與查詢",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5b3f8c",
+  "theme_color": "#5b3f8c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "請假", "url": "./" },
+    { "name": "忘刷", "url": "./?t=punch" }
+  ]
+}

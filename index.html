@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AOI 請假</title>
+<meta name="theme-color" content="#5b3f8c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<!-- iPhone：加入主畫面後全螢幕開啟、用這張圖示 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AOI 請假">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  html,body{margin:0;height:100%;background:#5b3f8c;overflow:hidden}
+  /* 避開 iPhone 瀏海與底部橫條 */
+  body{padding:env(safe-area-inset-top) 0 0;box-sizing:border-box}
+  #app{display:block;width:100%;height:100%;border:0;background:#f3f1f8}
+  #ld{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:#5b3f8c;color:#fff;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;transition:opacity .3s}
+  #ld a{color:#fff;font-size:14px;display:none}
+</style>
+</head>
+<body>
+<iframe id="app" title="AOI 請假" allow="camera; clipboard-write"></iframe>
+<div id="ld"><img src="icon-192.png" alt="AOI" width="96" height="96" style="border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.3)"><span>載入中… Loading…</span><a id="alt" href="#">若一直沒有出現，請點這裡用瀏覽器開啟</a></div>
+<script>
+  // Apps Script 網頁應用程式的網址（結尾 /exec）。重新部署成「新部署作業」換網址時要改這裡
+  var APP_URL = 'https://script.google.com/macros/s/AKfycbyb3POfxbDgINd2jIQ3IHsGryf0d4qugYYpJKD6Co2LR85ZSct5IiWS1KjGtmSQBNjT/exec';
+
+  // 外殼網址後面的參數（例如 ?t=punch 直接開忘刷）原樣帶給 Apps Script
+  var url = APP_URL + location.search;
+  var f = document.getElementById('app'), ld = document.getElementById('ld'), alt = document.getElementById('alt');
+  alt.href = url;
+  f.addEventListener('load', function(){ ld.style.opacity = 0; setTimeout(function(){ ld.style.display = 'none'; }, 300); });
+  f.src = url;
+  // 15 秒還沒載入（網路慢或被擋），顯示改用瀏覽器開啟的連結
+  setTimeout(function(){ alt.style.display = 'block'; }, 15000);
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body>
+</html>
